@@ -18,7 +18,7 @@ if($action =='connexion')
         }
         else
         {
-            $result=checkUserLog($login,$pwd);;
+            $result=checkUserLog($login,$pwd);
 
             if($result!==false)
             {
@@ -29,7 +29,8 @@ if($action =='connexion')
             }
             else
             {
-                $message['msg'] = array('text' => "L'enregistrement n'a pas pu se faire","type"=>'alert' );
+                $message['rez']=$result;
+                $message['msg'] = array('text' => "Le login ou le mot de passe incorrect","type"=>'alert' );
                 echo json_encode($message);
             }
 
@@ -39,10 +40,19 @@ else if($action=="inscription")
 {
       $d=$_POST;
       $f=$_FILES;
+      $profil="play";
+
+
+       if(isset($_SESSION['profil']) && $_SESSION['profil']==='admin')
+       {
+            $profil='admin';
+       }
+
+
 
       if(getUserByUserName($d["login"])!==false)
       {
-      $result=registeruser($d["login"],$d["pwd"],$d["firstname"],$d["lastname"],"admin",$f["avatar"]);
+      $result=registeruser($d["login"],$d["pwd"],$d["firstname"],$d["lastname"],$profil,$f["avatar"]);
 
             if($result)
             {
@@ -65,20 +75,105 @@ else if($action=="inscription")
         }
                 
 }
+else if($action=="getAllPlayers")
+{
+    $limit=5;
+    $offset=0;
+    if(isset($_POST['limit']))
+    {
+        $limit=$_POST['limit'];
+    }
 
+    if(isset($_POST['offset']))
+    {
+        $offset=$_POST['offset'];
+    }
+    
+    
+    $users=getAllUsers($limit,$offset);
+
+    echo json_encode($users);
+}else if($action=='updateUserStatut')
+{
+    $iduser=$_POST['id'];
+    updateUserStatut($iduser);
+}
+else if($action=='deleteUser')
+{
+    $iduser=$_POST['id'];
+    deleteUser($iduser);
+}
+
+
+function updateUserStatut($id)
+{
+        $db=$GLOBALS['db'];
+        $req=$db->prepare("UPDATE connexions set statut=? WHERE id=?");
+    
+        $req->execute(["off",$id]);
+        return true;
+}
+
+function deleteUser($id)
+{
+        $db=$GLOBALS['db'];
+        $req=$db->prepare("UPDATE connexions set statut=? WHERE id=?");
+    
+        $req->execute(["del",$id]);
+        return true;
+}
 
     
 	function checkUserLog($log,$pwd)
 	{
         $db=$GLOBALS['db'];
-        $req=$db->prepare('SELECT c.id,c.profil,c.login,u.firstname, u.lastname, u.photo FROM connexions c JOIN utilisateur u on c.id=u.id_connexions WHERE c.login = :login AND c.password = :password');
+        $req=$db->prepare('SELECT c.id,c.profil,c.login,c.password, u.firstname, u.lastname, u.photo FROM connexions c JOIN utilisateur u on c.id=u.id_connexions WHERE c.login = :login AND c.password = :pwd');
 
-        $req->execute(array('login'=>$log,'password'=>$pwd));
-
+        $req->execute(array('login'=>$log,'pwd'=>$pwd));
         return $req->fetch();
+            // if($result!==false)
+            // {
+            //     $password=$result['password'];
+            //     $validPassword = password_verify($password, $pwd);
+            //     if($validPassword)
+            //     {
+            //         return $result;
+            //     }
+            //     else
+            //     {
+            //         return true; 
+            //     }
+            // }
+            // else 
+            // {
+            //     return false;
+            // }
+           // return $result;
+
         
 
     }	
+
+        
+	function getAllUsers($limit=5,$offset=0)
+	{
+        $db=$GLOBALS['db'];//statut a ajouter apres 
+
+        $sql ="
+            SELECT c.id,c.profil,c.login, u.firstname, u.lastname, u.photo
+            FROM  connexions c JOIN utilisateur u on c.id=u.id_connexions
+            LIMIT {$limit} 
+            OFFSET {$offset}
+    ";
+
+       // $req=$db->query('SELECT c.id,c.profil,c.login, u.firstname, u.lastname, u.photo FROM connexions c JOIN utilisateur u on c.id=u.id_connexions LIMIT 5');
+        $req=$db->query($sql);
+          //  $req->execute();
+
+        return $req->fetchAll(2);
+           
+
+    }
 
 
     function getUserByUserName($login)
@@ -92,35 +187,6 @@ else if($action=="inscription")
 
     }
 
-//     $limit = $_POST['limit'];
-//     $offset = $_POST['offset'];
-//     $date = $_POST['date'];
-
-
-//     $sql ="
-//             SELECT * 
-//             FROM vente
-//             ORDER BY id DESC
-//             LIMIT {$limit} 
-//             OFFSET {$offset}
-//     ";
-
-//     if($date==1){
-//         $date = date('Y-m-d');
-//         $sql = "
-//         SELECT * 
-//         FROM vente
-//         WHERE date= DATE('{$date}')
-//         ORDER BY id DESC
-//         LIMIT {$limit} 
-//         OFFSET {$offset}
-// ";
-        
-//     }
-//     $req = $db->query($sql);
-//     $result = $req->fetchAll(2);
-
-//    echo json_encode($result);
 
 function registeruser($log,$pwd,$fn,$ln,$pfl,$f_imguser)
 { 
@@ -128,7 +194,8 @@ function registeruser($log,$pwd,$fn,$ln,$pfl,$f_imguser)
             $avatar=registerUserAvatar($f_imguser);
 
             //hachage du mot de passe!
-            $passwordHash = password_hash($pwd, PASSWORD_BCRYPT, array("cost" => 12));
+           // $passwordHash = password_hash($pwd, PASSWORD_BCRYPT, array("cost" => 12));
+            $passwordHash = $pwd;
 
             $infocon=array("login"=>$log,"pwd"=>$passwordHash,"profil"=>$pfl);
 

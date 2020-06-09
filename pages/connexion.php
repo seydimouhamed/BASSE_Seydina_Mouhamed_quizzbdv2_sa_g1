@@ -61,6 +61,7 @@
                        {
 
                             $('#nav').load('./pages/navbar2.php'); 
+                            console.log(data);
 
                             if(data['info_user']['profil']==="admin")
                             {
@@ -72,6 +73,8 @@
                        }
                        else
                        {
+
+                            console.log(data);
                            alert(''+data['msg']['text'])
                        }
                        //$('#container').load('pages/table',{date:1}); 

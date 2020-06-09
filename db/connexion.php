@@ -3,6 +3,7 @@
     $dbname = 'quizzbd';
     $dbuser = 'root';
     $dbpswd = 'passemouhamed';
+    
     try{
         $db = new PDO('mysql:host='.$dbhost.';dbname='.$dbname,$dbuser,$dbpswd,
         array(
